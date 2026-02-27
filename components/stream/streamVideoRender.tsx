@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  CallControls,
   CallingState,
+  SpeakerLayout,
   StreamCall,
   StreamTheme,
   StreamVideo,
@@ -15,7 +17,7 @@ import {
   type StreamVideoParticipant,
 } from "@stream-io/video-react-sdk";
 import {useEffect, useState} from "react";
-import { StreamClient } from "@stream-io/node-sdk";
+import "@stream-io/video-react-sdk/dist/css/styles.css";
 
 const apiKey = "mmhfdzb5evj2";
 const token =
@@ -86,9 +88,9 @@ export const MyUILayout = () => {
   return (
     <div>
       {/* Call {call?.id} has {participantCount} participants */}
-      <StreamTheme style={{position: "relative"}}>
-        <MyParticipantList participants={remoteParticipants} />
-        <MyFloatingLocalParticipant participant={localParticipant} />
+      <StreamTheme>
+        <SpeakerLayout participantsBarPosition="bottom" />
+        <CallControls />
       </StreamTheme>
     </div>
   );
