@@ -1,9 +1,14 @@
-"use client"
-
 import StreamVideoCallRender from "@/components/stream/streamVideoRender";
 
-export default function Home() {
+import HomeContent from "@/components/home/home-content";
+import Footer from "@/components/home/footer";
+
+export default async function Home() {
+
   return (
-   <StreamVideoCallRender />
+   <main className="w-full mx-auto flex flex-col items-center">
+    <HomeContent />
+    <Footer />
+   </main>
   );
 }
