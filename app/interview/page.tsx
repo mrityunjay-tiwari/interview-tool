@@ -1,18 +1,22 @@
 import BgGradient from "@/components/home/bg-gradient";
 import InterviewPage from "@/components/interview/interview-page";
-import { auth } from "@/utils/auth";
-import { redirect } from "next/navigation";
+import {auth} from "@/utils/auth";
+import {redirect} from "next/navigation";
+import {getStreamToken} from "../actions/stream";
 
 export default async function InterviewMainPage() {
-    const user = await auth();
+  const user = await auth();
 
-    if(!user) {
-        redirect("/signin");
-    }
-    return (
-        <div>
-            <BgGradient />
-            <InterviewPage />
-        </div>
-    )
+  if (!user) {
+    redirect("/signin");
+  }
+
+  const token = await getStreamToken(user.user?.id || "");
+
+  return (
+    <div>
+      <BgGradient />
+      <InterviewPage userId={user.user?.id || ""} userToken={token} />
+    </div>
+  );
 }

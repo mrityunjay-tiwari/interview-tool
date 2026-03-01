@@ -24,6 +24,8 @@ model User {
   emailVerified DateTime?
   accounts      Account[]
   sessions      Session[]
+
+  interviews    InterviewReport[]
 }
 
 model Account {
@@ -60,4 +62,32 @@ model VerificationToken {
   expires    DateTime
 
   @@id([identifier, token])
+}
+
+model InterviewReport {
+  id                String   @id @default(cuid())
+
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role              String?
+
+  technicalScore    Float
+  problemSolvingScore Float
+  communicationScore Float
+  confidenceScore   Float
+  behavioralScore   Float
+
+  overallScore      Float
+
+  postureMin        Float
+  postureMax        Float
+  postureAvg        Float
+
+  strengths         String[]
+  improvementAreas  String[]
+
+  finalSummary      String
+
+  createdAt         DateTime @default(now())
 }

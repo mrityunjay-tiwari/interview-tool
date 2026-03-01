@@ -9,7 +9,6 @@ import {
   StreamTheme,
   StreamVideo,
   StreamVideoClient,
-  useCall,
   useCallStateHooks,
   type User,
 } from "@stream-io/video-react-sdk";
@@ -20,12 +19,11 @@ import {
 import {useEffect, useRef, useState} from "react";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import {usePose} from "@/hooks/usePose";
-import { InterviewReportSchema } from "@/app/api/structured-data/schema";
-import { experimental_useObject as useObject } from "@ai-sdk/react";
+import {InterviewReportSchema} from "@/app/api/structured-data/schema";
+import {experimental_useObject as useObject} from "@ai-sdk/react";
+import {useRouter} from "next/navigation";
 
 const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY!;
-const token = process.env.NEXT_PUBLIC_STREAM_TOKEN!;
-const userId = process.env.NEXT_PUBLIC_STREAM_USER_ID!;
 // const callId = process.env.NEXT_PUBLIC_STREAM_CALL_ID!;
 // const apiKey = "mmhfdzb5evj2";
 
@@ -102,10 +100,10 @@ type MidFeedback = {
 //   //   }
 
 //   //   const user: User = {
-//   //     id: userId,
-//   //     name: "Oliver",
-//   //     image: "https://getstream.io/random_svg/?id=oliver&name=Oliver",
-//   //   };
+//   //   id: userId,
+//   //   name: "Oliver",
+//   //   image: "https://getstream.io/random_svg/?id=oliver&name=Oliver",
+//   // };
 
 //   //   const startCall = async () => {
 //   //     const streamClient = new StreamVideoClient({
@@ -215,7 +213,15 @@ type MidFeedback = {
 //   );
 // }
 
-export default function StreamVideoCallRender({ role }: { role: string }) {
+export default function StreamVideoCallRender({
+  role,
+  userId,
+  userToken,
+}: {
+  role: string;
+  userId: string;
+  userToken: string;
+}) {
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [call, setCall] = useState<Call | null>(null);
   const [dynamicCallId, setDynamicCallId] = useState<string | null>(null);
@@ -254,7 +260,7 @@ export default function StreamVideoCallRender({ role }: { role: string }) {
       const streamClient = new StreamVideoClient({
         apiKey,
         user,
-        token,
+        token: userToken,
       });
 
       const streamCall = streamClient.call("default", dynamicCallId);
@@ -262,7 +268,7 @@ export default function StreamVideoCallRender({ role }: { role: string }) {
       setClient(streamClient);
       setCall(streamCall);
 
-      await streamCall.join({ create: true });
+      await streamCall.join({create: true});
 
       await streamCall.camera.enable();
       await streamCall.microphone.enable();
@@ -271,7 +277,7 @@ export default function StreamVideoCallRender({ role }: { role: string }) {
     };
 
     startCall();
-  }, [dynamicCallId]);
+  }, [dynamicCallId, userId, userToken]);
 
   if (!client || !call || !isReady) {
     return <div>Joining call...</div>;
@@ -280,7 +286,12 @@ export default function StreamVideoCallRender({ role }: { role: string }) {
   return (
     <StreamVideo client={client}>
       <StreamCall call={call}>
-        <MyUILayout callId={dynamicCallId} role={role} />
+        <MyUILayout
+          callId={dynamicCallId}
+          role={role}
+          userId={userId}
+          userToken={userToken}
+        />
       </StreamCall>
     </StreamVideo>
   );
@@ -416,29 +427,110 @@ export default function StreamVideoCallRender({ role }: { role: string }) {
 //   );
 // };
 
-
 const MyUILayout = ({
   callId,
   role,
+  userId,
+  userToken,
 }: {
   callId: string | null;
   role: string;
+  userId: string;
+  userToken: string;
 }) => {
-  const { useCallCallingState } = useCallStateHooks();
+  const {useCallCallingState} = useCallStateHooks();
   const callingState = useCallCallingState();
+
+  // 🔥 CRITICAL: Use sessionUserId first, fallback to the hardcoded userId ONLY if absolutely necessary
+  // but note that hardcoded userId like 'Quilted_Check' will fail if not in DB
+  const finalUserId = userId;
 
   const [midFeedback, setMidFeedback] = useState<MidFeedback | null>(null);
   const agentStarted = useRef(false);
+  const isFinalizing = useRef(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { canvasRef, postureScore, nudgeMessage } = usePose(videoRef);
+  const postureHistory = useRef<number[]>([]);
+  const {canvasRef, postureScore, nudgeMessage} = usePose(videoRef);
 
-    const { submit, object } = useObject({
+  const router = useRouter();
+
+  const {submit} = useObject({
     api: "/api/structured-data",
     schema: InterviewReportSchema,
+    onFinish: async ({object: finalObject}) => {
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log("🤖 [AI REPORT GENERATED]");
+      console.log(finalObject);
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log(
+        "🏁 [FE] AI Report generation finished. Object state:",
+        finalObject ? "Valid" : "Empty",
+      );
+      if (!finalObject) {
+        console.warn("⚠️ [FE] No report object received from AI SDK");
+        console.log(
+          "❌ [FE] AI Report generation failed or returned empty object. Not saving report.",
+        );
+        isFinalizing.current = false; // Reset finalizing state if report generation fails
+        router.push("/dashboard"); // Redirect even if report generation fails
+        return;
+      }
+
+      try {
+        if (!finalUserId || finalUserId === "Quilted_Check") {
+          console.error(
+            "❌ [FE] Save blocked: User ID is invalid or missing. Are you logged in?",
+            {finalUserId},
+          );
+        }
+
+        const scores = postureHistory.current;
+        console.log(`📊 Processing ${scores.length} posture data points...`);
+
+        const min = scores.length > 0 ? Math.min(...scores) : 0;
+        const max = scores.length > 0 ? Math.max(...scores) : 0;
+        const avg =
+          scores.length > 0
+            ? scores.reduce((sum, s) => sum + s, 0) / scores.length
+            : 0;
+
+        console.log("🛰️ [FE] Sending final report to /api/save-report...");
+        console.log("📦 [FE] Final Payload:", {
+          report: finalObject,
+          userId: finalUserId,
+          role,
+          postureStats: {min, max, avg},
+        });
+
+        const res = await fetch("/api/save-report", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            report: finalObject,
+            userId: finalUserId,
+            role,
+            postureStats: {min, max, avg},
+          }),
+        });
+
+        if (res.ok) {
+          console.log(
+            "✅ Report saved successfully. Redirecting to dashboard...",
+          );
+          router.push("/dashboard");
+        } else {
+          console.error("❌ Failed to save report:", await res.text());
+        }
+      } catch (error) {
+        console.error("❌ Save flow failed:", error);
+      }
+    },
   });
-  
-    // ✅ Step 3: Start agent ONLY when fully joined
+
+  // ✅ Step 3: Start agent ONLY when fully joined
   useEffect(() => {
     if (!callId) return;
     if (callingState !== CallingState.JOINED) return;
@@ -447,12 +539,11 @@ const MyUILayout = ({
     agentStarted.current = true;
 
     const startAgentWithDelay = async () => {
-      // 🔥 Wait for SFU to stabilize
       await new Promise((res) => setTimeout(res, 1000));
 
       await fetch("http://localhost:8000/start-agent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           role,
           call_id: callId,
@@ -464,61 +555,100 @@ const MyUILayout = ({
   }, [callingState, callId, role]);
 
   // ✅ Step 4: Poll feedback
-useEffect(() => {
-  if (!callId) return;
-  if (callingState !== CallingState.JOINED) return;
-
-  const interval = setInterval(async () => {
-    try {
-      const res = await fetch(
-        `http://localhost:8000/latest-feedback/${callId}`
-      );
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      if (data?.feedback) {
-        setMidFeedback(data.feedback);
-      }
-    } catch (err) {
-      console.error("Feedback polling error:", err);
-    }
-  }, 5000);
-
-  return () => clearInterval(interval);
-}, [callId, callingState]);
-
-  // ✅ Step 5: Fetch segments after leaving
   useEffect(() => {
     if (!callId) return;
-    if (callingState !== CallingState.LEFT) return;
+    if (callingState !== CallingState.JOINED) return;
 
-    // fetch(`http://localhost:8000/segments/${callId}`)
-    //   .then((res) => res.json())
-    //   .then((data) => {
-    //     console.log("Final conversation segments:", data.segments);
-    //     submit({
-    //       questions: data.segments,
-    //     });
-    //   });
-    const generateFinalReport = async () => {
-    const res = await fetch(
-      `http://localhost:8000/segments/${callId}`
-    );
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:8000/latest-feedback/${callId}`,
+        );
 
-    const data = await res.json();
+        if (!res.ok) return;
 
-    if (!data?.segments?.length) return;
+        const data = await res.json();
 
-    // 🔥 Send segments to Vercel AI SDK route
-    submit({
-       questions: data.segments,
-    });
-  };
+        if (data?.feedback) {
+          setMidFeedback(data.feedback);
+        }
+      } catch (err) {
+        console.error("Feedback polling error:", err);
+      }
+    }, 5000);
 
-  generateFinalReport();
-  }, [callingState, callId]);
+    return () => clearInterval(interval);
+  }, [callId, callingState]);
+
+  // ✅ Step 5: Collect posture stats every 5 seconds
+  const currentPoseScoreRef = useRef(postureScore);
+  useEffect(() => {
+    currentPoseScoreRef.current = postureScore;
+  }, [postureScore]);
+
+  useEffect(() => {
+    if (callingState !== CallingState.JOINED) return;
+
+    const interval = setInterval(() => {
+      const score = currentPoseScoreRef.current;
+      postureHistory.current.push(score);
+      console.log(
+        `⏱️ Posture Sample: ${score.toFixed(2)} (History size: ${postureHistory.current.length})`,
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [callingState]);
+
+  // ✅ Step 6: Fetch segments and trigger report generation when call ends
+  useEffect(() => {
+    if (!callId) return;
+    if (callingState === CallingState.LEFT) {
+      if (isFinalizing.current) return;
+      isFinalizing.current = true;
+
+      console.log("🚪 User left the call. Starting finalization flow...");
+
+      const generateReport = async () => {
+        try {
+          console.log(`📡 Fetching segments for call: ${callId}...`);
+          const res = await fetch(`http://localhost:8000/segments/${callId}`);
+
+          if (!res.ok) {
+            console.error(
+              "❌ Failed to fetch segments from backend:",
+              res.status,
+            );
+            router.push("/dashboard");
+            return;
+          }
+
+          const data = await res.json();
+          console.log("📝 Full Interview Segments retrieved:", data.segments);
+
+          if (!data?.segments?.length) {
+            console.warn(
+              "⚠️ No segments found for this interview. Redirecting...",
+            );
+            router.push("/dashboard");
+            return;
+          }
+
+          console.log(
+            "🤖 Triggering AI report generation with Vercel AI SDK...",
+          );
+          submit({
+            questions: data.segments,
+          });
+        } catch (err) {
+          console.error("❌ Finalization error:", err);
+          router.push("/dashboard");
+        }
+      };
+
+      generateReport();
+    }
+  }, [callingState, callId, router, submit]);
 
   // console.log("The final object after processing : ",{object})
   // Attach video reference
@@ -546,47 +676,51 @@ useEffect(() => {
         </StreamTheme>
       </div>
 
-      <div className="w-[360px] border-l border-gray-200 bg-white/70 backdrop-blur-xl p-6 flex flex-col gap-6">
-        {midFeedback && (
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-gray-800">
-                Live AI Feedback
-              </p>
-              <span className="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full">
-                {midFeedback.score}/10
-              </span>
+      <div className="p-0.5 border-l border-gray-200 mt-16">
+        <div className="w-[360px] border-l-2 border-gray-200 bg-white/70 backdrop-blur-xl p-6 flex flex-col gap-6">
+          {midFeedback && (
+            <div className="p-0.5 border bg-accent/50 border-gray-200 rounded-2xl">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-semibold text-gray-800">
+                    Live AI Feedback
+                  </p>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full">
+                    {midFeedback.score}/10
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-600">
+                  {midFeedback.short_feedback}
+                </p>
+              </div>
             </div>
+          )}
 
-            <p className="text-sm text-gray-600">
-              {midFeedback.short_feedback}
-            </p>
-          </div>
-        )}
+          <div className="p-0.5 border bg-accent/50 border-gray-200 rounded-2xl">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <p className="font-semibold text-gray-800 mb-3">
+                Posture & Presence
+              </p>
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <p className="font-semibold text-gray-800 mb-3">
-            Posture & Presence
-          </p>
+              <canvas
+                ref={canvasRef}
+                width={400}
+                height={300}
+                className="w-full h-auto"
+              />
 
-          <canvas
-            ref={canvasRef}
-            width={400}
-            height={300}
-            className="w-full h-auto"
-          />
-
-          <div className="mt-3 text-sm font-medium">
-            Score: {postureScore} —{" "}
-            <span
-              className={
-                postureScore < 0.5
-                  ? "text-red-500"
-                  : "text-emerald-600"
-              }
-            >
-              {postureScore < 0.5 ? "Poor" : "Good"} {nudgeMessage}
-            </span>
+              <div className="mt-3 text-sm font-medium">
+                Score: {postureScore} —{" "}
+                <span
+                  className={
+                    postureScore < 0.5 ? "text-red-500" : "text-emerald-600"
+                  }
+                >
+                  {postureScore < 0.5 ? "Poor" : "Good"} {nudgeMessage}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

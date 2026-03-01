@@ -161,6 +161,25 @@ exports.Prisma.VerificationTokenScalarFieldEnum = {
   expires: 'expires'
 };
 
+exports.Prisma.InterviewReportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  role: 'role',
+  technicalScore: 'technicalScore',
+  problemSolvingScore: 'problemSolvingScore',
+  communicationScore: 'communicationScore',
+  confidenceScore: 'confidenceScore',
+  behavioralScore: 'behavioralScore',
+  overallScore: 'overallScore',
+  postureMin: 'postureMin',
+  postureMax: 'postureMax',
+  postureAvg: 'postureAvg',
+  strengths: 'strengths',
+  improvementAreas: 'improvementAreas',
+  finalSummary: 'finalSummary',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -181,7 +200,8 @@ exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
   Session: 'Session',
-  VerificationToken: 'VerificationToken'
+  VerificationToken: 'VerificationToken',
+  InterviewReport: 'InterviewReport'
 };
 
 /**
