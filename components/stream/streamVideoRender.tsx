@@ -22,6 +22,8 @@ import {usePose} from "@/hooks/usePose";
 import {InterviewReportSchema} from "@/app/api/structured-data/schema";
 import {experimental_useObject as useObject} from "@ai-sdk/react";
 import {useRouter} from "next/navigation";
+import {Spinner} from "@/components/ui/spinner";
+import {motion} from "motion/react";
 
 const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY!;
 // const callId = process.env.NEXT_PUBLIC_STREAM_CALL_ID!;
@@ -280,7 +282,24 @@ export default function StreamVideoCallRender({
   }, [dynamicCallId, userId, userToken]);
 
   if (!client || !call || !isReady) {
-    return <div>Joining call...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] w-full gap-4">
+        <motion.div
+          initial={{opacity: 0, y: 10}}
+          animate={{opacity: 1, y: 0}}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="p-3 border border-gray-300 rounded-2xl bg-muted/20">
+            <div className="p-3 border border-gray-200 rounded-xl bg-background shadow-sm">
+              <Spinner className="h-8 w-8 text-blue-950" />
+            </div>
+          </div>
+          <p className="text-xl font-bold tracking-tight text-blue-950 animate-pulse">
+            Configuring interview session...
+          </p>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
@@ -664,7 +683,14 @@ const MyUILayout = ({
   }, []);
 
   if (callingState !== CallingState.JOINED) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-full w-full gap-4">
+        <Spinner className="h-6 w-6 text-blue-950" />
+        <p className="text-sm font-bold text-blue-950 uppercase tracking-widest">
+          Joining Call...
+        </p>
+      </div>
+    );
   }
 
   return (

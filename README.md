@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prepnova - AI-powered Interview Coaching
+
+Prepnova is an AI-powered interview coaching platform designed to help candidates ace their interviews. It leverages cutting-edge AI to provide real-time feedback on answers, body language, and engagement, providing a comprehensive analysis to turn every practice session into measurable growth.
+
+## Features
+
+- **Real-time AI Analysis**: Instant feedback on your interview performance using advanced AI models.
+- **Body Language & Pose Detection**: Integrated MediaPipe technology to analyze posture and non-verbal communication.
+- **Seamless Video Calls**: Powered by Stream Video SDK for high-quality, reliable mock interviews.
+- **Personalized Insights**: Track your progress over time with interactive dashboards and charts.
+- **Growth Tracking**: Detailed metrics to help you identify strengths and areas for improvement.
+
+## Tech Stack
+
+- **Frontend**: [Next.js](https://nextjs.org/) (App Router), [React](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [Motion](https://motion.dev/)
+- **State & UI**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/), [Shadcn/UI](https://ui.shadcn.com/)
+- **Video & AI**: [Stream Video SDK](https://getstream.io/video/), [MediaPipe](https://google.github.io/mediapipe/), [OpenRouter AI](https://openrouter.ai/)
+- **Backend & Database**: [Prisma](https://www.prisma.io/) (ORM), [PostgreSQL](https://www.postgresql.org/), [NextAuth.js](https://next-auth.js.org/)
+- **Visuals**: [Recharts](https://recharts.org/), [Rough Notation](https://roughnotation.com/)
+
+## Backend Repository
+
+The backend source code for this project can be found here:
+**[Prepnova Backend](https://github.com/mrityunjay-tiwari/stream-interview-be)**
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js (Latest LTS)
+- npm / yarn / pnpm
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/mrityunjay-tiwari/stream.git
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   Create a `.env` file in the root directory and add the necessary keys (Database URL, Stream API keys, NextAuth secrets, etc.).
+
+4. Run Prisma migrations:
+
+   ```bash
+   npx prisma db push
+   ```
+
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
