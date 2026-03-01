@@ -1,6 +1,6 @@
 import {auth} from "@/utils/auth";
 import {getUserInterviewReports} from "@/app/actions/userReports";
-import {redirect} from "next/navigation";
+import {LoginRequired} from "@/components/auth/login-required";
 import {
   TrendingUp,
   BarChart,
@@ -27,13 +27,14 @@ import {
 import {Progress} from "@/components/ui/progress";
 import {format} from "date-fns";
 import {ProgressCharts} from "@/components/dashboard/progress-charts";
-import { sans } from "@/lib/fonts";
+import {sans} from "@/lib/fonts";
+import { redirect } from "next/navigation";
 
 export default async function ProgressPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/");
+    return <LoginRequired />;
   }
 
   const reports = await getUserInterviewReports(session.user.id);
@@ -96,7 +97,9 @@ export default async function ProgressPage() {
         </header>
 
         {/* Professional Aggregate Stats Cards with Double Border */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 ${sans.className}`}>
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 ${sans.className}`}
+        >
           {[
             {
               label: "Average Score",

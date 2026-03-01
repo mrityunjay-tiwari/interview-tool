@@ -1,8 +1,8 @@
 import {auth} from "@/utils/auth";
 import {getUserInterviewReports} from "@/app/actions/userReports";
 import {InterviewCard} from "@/components/dashboard/interview-card";
-import {redirect} from "next/navigation";
-import {PlusCircle, History, LayoutDashboard, LogOut} from "lucide-react";
+import {LoginRequired} from "@/components/auth/login-required";
+import {PlusCircle, History} from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/");
+    return <LoginRequired />;
   }
 
   const reports = await getUserInterviewReports(session.user.id);
@@ -19,7 +19,6 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background mt-20">
       {/* Dashboard Top Navigation / Header */}
-     
 
       <main className="container mx-auto md:px-8 px-4 py-8 max-w-7xl">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
