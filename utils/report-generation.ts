@@ -129,7 +129,6 @@ export async function generateAndSaveReportForDraft(draft: DraftForReport) {
   const savedReport = await prisma.interviewReport.create({
     data: {
       userId: draft.userId,
-      callId: draft.callId,
       role: roleForReport,
       seniority,
       technicalScore: report.technicalScore,
