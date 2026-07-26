@@ -1,6 +1,16 @@
 "use server";
 
 import { prisma } from "@/prisma/src";
+import { Prisma } from "@/src/generated/client";
+
+function isMissingInterviewDraftTableError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return error.code === "P2021" || error.code === "P2022";
+  }
+
+  return error instanceof Error &&
+    /InterviewDraft|table.*does not exist|current database/i.test(error.message);
+}
 
 export async function getUserInterviewReports(userId: string) {
   if (!userId) {
@@ -72,6 +82,13 @@ export async function getUserInterviewDrafts(userId: string) {
 
     return drafts;
   } catch (error) {
+    if (isMissingInterviewDraftTableError(error)) {
+      console.warn(
+        `InterviewDraft table missing while fetching drafts for user ${userId}; returning empty list.`,
+      );
+      return [];
+    }
+
     console.error(`Error fetching interview drafts for user ${userId}:`, error);
     throw new Error("Failed to fetch user interview drafts");
   }
@@ -86,6 +103,13 @@ export async function deleteInterviewDraft(draftId: string) {
     await prisma.interviewDraft.delete({ where: { id: draftId } });
     return { success: true };
   } catch (error) {
+    if (isMissingInterviewDraftTableError(error)) {
+      console.warn(
+        `InterviewDraft table missing while deleting draft ${draftId}; treating as already removed.`,
+      );
+      return { success: true };
+    }
+
     console.error(`Error deleting interview draft ${draftId}:`, error);
     throw new Error("Failed to delete interview draft");
   }

@@ -4,6 +4,17 @@ import {auth} from "@/utils/auth";
 import {prisma} from "@/prisma/src";
 import {generateAndSaveReportForDraft} from "@/utils/report-generation";
 import {revalidatePath} from "next/cache";
+import {Prisma} from "@/src/generated/client";
+import type {InterviewDraft} from "@/src/generated/client";
+
+function isMissingInterviewDraftTableError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return error.code === "P2021" || error.code === "P2022";
+  }
+
+  return error instanceof Error &&
+    /InterviewDraft|table.*does not exist|current database/i.test(error.message);
+}
 
 /**
  * Regenerates the report for a FAILED (or stuck PROCESSING) draft using the
@@ -20,7 +31,19 @@ export async function regenerateReport(draftId: string) {
     return {success: false, error: "Not authenticated"} as const;
   }
 
-  const draft = await prisma.interviewDraft.findUnique({where: {id: draftId}});
+  let draft: InterviewDraft | null;
+  try {
+    draft = await prisma.interviewDraft.findUnique({where: {id: draftId}});
+  } catch (error) {
+    if (isMissingInterviewDraftTableError(error)) {
+      return {
+        success: false,
+        error: "Draft storage is not available yet. Please try again after the database migration completes.",
+      } as const;
+    }
+    throw error;
+  }
+
   if (!draft || draft.userId !== session.user.id) {
     return {success: false, error: "Draft not found"} as const;
   }
@@ -46,6 +69,13 @@ export async function regenerateReport(draftId: string) {
     revalidatePath("/dashboard");
     return {success: true, reportId} as const;
   } catch (error) {
+    if (isMissingInterviewDraftTableError(error)) {
+      return {
+        success: false,
+        error: "Draft storage is not available yet. Please try again after the database migration completes.",
+      } as const;
+    }
+
     await prisma.interviewDraft
       .update({
         where: {id: draftId},
